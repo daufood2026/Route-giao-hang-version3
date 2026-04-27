@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Optimize Route</title>
+  <style>
+    #map { height: 90vh; width: 100%; }
+    #info { padding: 10px; font-family: Arial; }
+  </style>
+</head>
+<body>
+
+<div id="info">
+  <button onclick="run()">Chạy tối ưu tuyến</button>
+  <div id="result"></div>
+</div>
+
+<div id="map"></div>
+
+<script>
+const API_KEY = "YOUR_API_KEY";
+
+let map;
+
+// ===== 1. khoảng cách tạm (để optimize)
+function calcDistance(a, b) {
+  return Math.sqrt(
+    Math.pow(a.lat - b.lat, 2) +
+    Math.pow(a.lng - b.lng, 2)
+  );
+}
+
+// ===== 2. greedy route
+function optimizeRoute(start, points) {
+  let route = [start];
+  let remaining = [...points];
+  let current = start;
+
+  while (remaining.length > 0) {
+    let nearestIndex = 0;
+    let minDist = Infinity;
+
+    remaining.forEach((p, i) => {
+      const d = calcDistance(current, p);
+      if (d < minDist) {
+        minDist = d;
+        nearestIndex = i;
+      }
+    });
+
+    current = remaining.splice(nearestIndex, 1)[0];
+    route.push(current);
+  }
+
+  return route;
+}
+
+// ===== 3. vẽ map + route
+function drawRoute(route) {
+  const directionsService = new google.maps.DirectionsService();
+  const directionsRenderer = new google.maps.DirectionsRenderer();
+
+  directionsRenderer.setMap(map);
+
+  directionsService.route({
+    origin: route[0],
+    destination: route[route.length - 1],
+    waypoints: route.slice(1, -1).map(p => ({ location: p })),
+    travelMode: 'DRIVING'
+  }, (result, status) => {
+    if (status === "OK") {
+      directionsRenderer.setDirections(result);
+
+      let total = 0;
+      const legs = result.routes[0].legs;
+
+      legs.forEach(l => total += l.distance.value);
+
+      total = total / 1000;
+
+      document.getElementById("result").innerHTML =
+        "Tổng km: " + total.toFixed(2);
+    } else {
+      alert("Lỗi route: " + status);
+    }
+  });
+}
+
+// ===== 4. main
+function run() {
+  const kho = { lat: 21.0285, lng: 105.8542, name: "Kho" };
+
+  const points = [
+    { lat: 21.038, lng: 105.78, name: "A" },
+    { lat: 21.05, lng: 105.82, name: "B" },
+    { lat: 21.06, lng: 105.9, name: "C" }
+  ];
+
+  const route = optimizeRoute(kho, points);
+
+  // show thứ tự
+  let text = "Thứ tự: ";
+  route.forEach(p => text += p.name + " → ");
+  document.getElementById("result").innerHTML = text;
+
+  drawRoute(route);
+}
+
+// ===== init map
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 12,
+    center: { lat: 21.0285, lng: 105.8542 }
+  });
+}
+</script>
+
+<!-- Google Maps -->
+<script async
+src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap">
+</script>
+
+</body>
+</html>
