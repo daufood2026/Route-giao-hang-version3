@@ -1,83 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng FINAL</title>
-
+  <title>Route giao hàng FINAL1 - Fixed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial; }
-
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; color: #333; }
     .container { display: flex; gap: 20px; }
-
-    .left { flex: 0.7; }
-
+    .left { flex: 0.8; }
     .right {
-      flex: 1.3;
+      flex: 1.2;
       min-width: 350px;
-      border: 1px solid #ccc;
-      padding: 12px;
-      background: #fafafa;
+      border: 1px solid #ddd;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 8px;
     }
-
-    #map { height: 500px; margin-top: 10px; }
-
-    .input-row {
-      display: flex;
-      align-items: center;
-      gap: 5px;
+    /* FIX TRẮNG TRANG: Đảm bảo có chiều cao và màu nền nhận diện */
+    #map { 
+      height: 500px; 
+      width: 100%;
+      margin-top: 15px; 
+      background-color: #e5e5e5; 
+      border-radius: 8px;
     }
-
-    input {
-      flex: 1;
-      padding: 6px;
-      margin: 4px 0;
-    }
-
+    .input-row { display: flex; align-items: center; gap: 5px; margin-bottom: 8px; }
+    input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
     button {
-      padding: 6px 12px;
+      padding: 8px 15px;
       margin: 5px 5px 5px 0;
       cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
     }
-
-    #info { margin-top: 10px; font-weight: bold; }
-
-    #suggestion {
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
+    button:hover { background-color: #0056b3; }
+    .btn-add { background-color: #28a745; }
+    #info { margin-top: 10px; font-size: 1.1em; color: #d9534f; }
+    #suggestion { font-size: 14px; line-height: 1.6; }
     @media (max-width: 768px) {
       .container { flex-direction: column; }
-      .left, .right { width: 100%; }
-      #map { height: 400px; }
+      #map { height: 350px; }
     }
   </style>
 </head>
 
 <body>
 
-<h3>🚚 Route giao hàng FINAL</h3>
+<h3>🚚 Hệ thống Tối ưu Route Giao hàng</h3>
 
 <div class="container">
-
   <div class="left">
-    <div id="inputs"></div>
-
-    <button onclick="addPoint()">+ Thêm điểm</button>
-    <button onclick="buildRoute()">Vẽ route</button>
-
+    <div id="inputs">
+      </div>
+    <button class="btn-add" onclick="addPoint()">+ Thêm điểm giao</button>
+    <button onclick="buildRoute()">🚀 Tính toán & Vẽ Route</button>
     <div id="info">Tổng quãng đường: 0 km</div>
   </div>
 
   <div class="right">
-    <h4>📌 Gợi ý cung đường:</h4>
-    <div id="suggestion">Chưa có dữ liệu</div>
+    <h4>📌 Thứ tự giao hàng tối ưu:</h4>
+    <div id="suggestion">Vui lòng nhập địa chỉ và nhấn "Vẽ route"</div>
   </div>
-
 </div>
 
 <div id="map"></div>
 
-<!-- HERE -->
 <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
@@ -85,77 +74,60 @@
 <link rel="stylesheet" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
 
 <script>
-
+// Cấu hình API
 const API_KEY = "VkhQNy-v_IW-P28JVNho3NYF4dasL4qGr9N-61082nY";
 
-// ===== MAP (FIX TRẮNG) =====
+// 1. KHỞI TẠO MAP (Fix lỗi hiển thị)
 const platform = new H.service.Platform({ apikey: API_KEY });
-
-const layers = platform.createDefaultLayers({
-  lg: 'vi'
-});
+const defaultLayers = platform.createDefaultLayers({ lg: 'vi' });
 
 const map = new H.Map(
   document.getElementById('map'),
-  layers.raster.normal.map,
+  defaultLayers.vector.normal.map, // Sử dụng Vector thay cho Raster
   {
     zoom: 12,
-    center: { lat: 21.0285, lng: 105.8542 }
+    center: { lat: 21.0285, lng: 105.8542 }, // Tọa độ mặc định: Hà Nội
+    pixelRatio: window.devicePixelRatio || 1
   }
 );
 
+// Đảm bảo map tự co giãn khi đổi kích thước màn hình
 window.addEventListener('resize', () => map.getViewPort().resize());
-setTimeout(() => map.getViewPort().resize(), 100);
 
-new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-H.ui.UI.createDefault(map, layers);
+const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+const ui = H.ui.UI.createDefault(map, defaultLayers);
 
-// ===== STATE =====
-let markers = [];
-let routeGroup = null;
+// ===== QUẢN LÝ INPUT =====
 let inputCount = 0;
-
-// ===== INPUT =====
 function addPoint() {
   inputCount++;
-
   const wrapper = document.createElement("div");
   wrapper.className = "input-row";
-
-  const input = document.createElement("input");
-  input.placeholder = "Điểm " + inputCount;
-  input.className = "point-input";
-
-  wrapper.appendChild(input);
-
-  if (inputCount > 2) {
-    const removeBtn = document.createElement("button");
-    removeBtn.innerText = "❌";
-    removeBtn.onclick = () => wrapper.remove();
-    wrapper.appendChild(removeBtn);
-  }
-
+  wrapper.innerHTML = `
+    <input type="text" placeholder="Địa điểm ${inputCount}..." class="point-input">
+    ${inputCount > 2 ? '<button onclick="this.parentElement.remove()" style="background:#dc3545">❌</button>' : ''}
+  `;
   document.getElementById("inputs").appendChild(wrapper);
 }
 
+// Khởi tạo sẵn 3 ô nhập
 addPoint(); addPoint(); addPoint();
 
-// ===== GEOCODE =====
+// ===== XỬ LÝ LOGIC API =====
+
 async function geocode(addr) {
-  const res = await fetch(
-    `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&apiKey=${API_KEY}`
-  );
-  const data = await res.json();
-  if (!data.items.length) return null;
-  return [data.items[0].position.lat, data.items[0].position.lng];
+  try {
+    const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&apiKey=${API_KEY}`);
+    const data = await res.json();
+    return data.items.length ? [data.items[0].position.lat, data.items[0].position.lng] : null;
+  } catch (e) { return null; }
 }
 
-// ===== DISTANCE =====
-function distance(a, b) {
-  return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
+function getDistance(a, b) {
+  return Math.sqrt(Math.pow(a[0]-b[0], 2) + Math.pow(a[1]-b[1], 2));
 }
 
-// ===== OPTIMIZE =====
+// Thuật toán tìm điểm gần nhất đơn giản (Greedy)
 function optimizeRoute(points, addresses) {
   let orderedPoints = [points[0]];
   let orderedAddresses = [addresses[0]];
@@ -163,163 +135,101 @@ function optimizeRoute(points, addresses) {
   let remainA = addresses.slice(1);
 
   while (remainP.length) {
-    let last = orderedPoints.at(-1);
-    let idx = 0, min = distance(last, remainP[0]);
+    let last = orderedPoints[orderedPoints.length - 1];
+    let nearestIdx = 0;
+    let minDist = getDistance(last, remainP[0]);
 
-    for (let i=1;i<remainP.length;i++) {
-      let d = distance(last, remainP[i]);
-      if (d < min) { min = d; idx = i; }
+    for (let i = 1; i < remainP.length; i++) {
+      let d = getDistance(last, remainP[i]);
+      if (d < minDist) { minDist = d; nearestIdx = i; }
     }
-
-    orderedPoints.push(remainP[idx]);
-    orderedAddresses.push(remainA[idx]);
-
-    remainP.splice(idx,1);
-    remainA.splice(idx,1);
+    orderedPoints.push(remainP[nearestIdx]);
+    orderedAddresses.push(remainA[nearestIdx]);
+    remainP.splice(nearestIdx, 1);
+    remainA.splice(nearestIdx, 1);
   }
-
   return { orderedPoints, orderedAddresses };
 }
 
-// ===== ICON SỐ =====
-function createNumberIcon(number) {
-  return new H.map.DomIcon(`
-    <div style="
-      background:#ff4d4f;
-      color:white;
-      border-radius:50%;
-      width:32px;
-      height:32px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:bold;
-      box-shadow:0 2px 6px rgba(0,0,0,0.3);
-    ">
-      ${number}
-    </div>
-  `);
-}
+let routeGroup = null;
+let markers = [];
 
-// ===== ROUTE (FIX CHUẨN) =====
 async function drawRoute(points) {
-
   if (routeGroup) map.removeObject(routeGroup);
-
-  const origin = `${points[0][0]},${points[0][1]}`;
-  const destination = `${points.at(-1)[0]},${points.at(-1)[1]}`;
-
-  const via = points.slice(1,-1)
-    .map(p => `&via=${p[0]},${p[1]}`)
-    .join("");
-
-  const url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${via}&return=polyline,summary&routingMode=fast&apiKey=${API_KEY}`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (!data.routes) {
-    console.log(data);
-    alert("Lỗi route HERE");
-    return;
-  }
-
   routeGroup = new H.map.Group();
 
-  let totalDistance = 0;
+  const origin = `${points[0][0]},${points[0][1]}`;
+  const destination = `${points[points.length-1][0]},${points[points.length-1][1]}`;
+  const via = points.slice(1, -1).map(p => `&via=${p[0]},${p[1]}`).join("");
 
-  data.routes[0].sections.forEach(section => {
+  const url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${via}&return=polyline,summary&apiKey=${API_KEY}`;
 
-    const line = H.geo.LineString.fromFlexiblePolyline(section.polyline);
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    let totalMeters = 0;
 
-    const polyline = new H.map.Polyline(line, {
-      style: { strokeColor: 'blue', lineWidth: 5 }
+    data.routes[0].sections.forEach(section => {
+      const line = H.geo.LineString.fromFlexiblePolyline(section.polyline);
+      const polyline = new H.map.Polyline(line, {
+        style: { strokeColor: '#007bff', lineWidth: 6 }
+      });
+      routeGroup.addObject(polyline);
+      totalMeters += section.summary.length;
     });
 
-    routeGroup.addObject(polyline);
-
-    totalDistance += section.summary.length;
-  });
-
-  map.addObject(routeGroup);
-
-  map.getViewModel().setLookAtData({
-    bounds: routeGroup.getBoundingBox()
-  });
-
-  document.getElementById("info").innerText =
-    "Tổng quãng đường: " + (totalDistance / 1000).toFixed(2) + " km";
+    map.addObject(routeGroup);
+    map.getViewModel().setLookAtData({ bounds: routeGroup.getBoundingBox(), padding: {top: 50, bottom: 50, left: 50, right: 50} });
+    document.getElementById("info").innerText = `Tổng quãng đường: ${(totalMeters / 1000).toFixed(2)} km`;
+  } catch (e) { alert("Không thể tính toán route. Vui lòng kiểm tra lại địa chỉ."); }
 }
 
-// ===== BUILD =====
 async function buildRoute() {
-
-  let inputs = document.querySelectorAll(".point-input");
-
+  const inputElements = document.querySelectorAll(".point-input");
   let addresses = [];
-  inputs.forEach(i => { if (i.value) addresses.push(i.value); });
+  inputElements.forEach(el => { if(el.value.trim()) addresses.push(el.value.trim()); });
 
-  if (addresses.length < 2) {
-    alert("Nhập ít nhất 2 điểm");
-    return;
-  }
+  if (addresses.length < 2) return alert("Vui lòng nhập ít nhất 2 địa điểm!");
 
+  // Clear cũ
   markers.forEach(m => map.removeObject(m));
   markers = [];
 
   let points = [];
-  for (let a of addresses) {
-    let p = await geocode(a);
-    if (!p) return alert("Không tìm thấy: " + a);
+  for (let addr of addresses) {
+    const p = await geocode(addr);
+    if (!p) return alert("Không tìm thấy địa chỉ: " + addr);
     points.push(p);
   }
 
-  const { orderedPoints, orderedAddresses } =
-    optimizeRoute(points, addresses);
+  const { orderedPoints, orderedAddresses } = optimizeRoute(points, addresses);
 
-  // ===== GỢI Ý =====
+  // Hiển thị danh sách gợi ý
   let html = "<ol>";
   orderedAddresses.forEach(a => html += `<li>${a}</li>`);
   html += "</ol>";
 
-  // ===== LINK GOOGLE =====
-  const gmapUrl = "https://www.google.com/maps/dir/" +
-    orderedPoints.map(p => `${p[0]},${p[1]}`).join("/");
+  // Link Google Maps chuẩn cho nhiều điểm dừng
+  const gOrigin = `${orderedPoints[0][0]},${orderedPoints[0][1]}`;
+  const gDest = `${orderedPoints[orderedPoints.length-1][0]},${orderedPoints[orderedPoints.length-1][1]}`;
+  const gWaypoints = orderedPoints.slice(1, -1).map(p => `${p[0]},${p[1]}`).join('|');
+  const gMapFullUrl = `https://www.google.com/maps/dir/?api=1&origin=${gOrigin}&destination=${gDest}&waypoints=${gWaypoints}&travelmode=driving`;
 
-  html += `
-    <a href="${gmapUrl}" target="_blank" style="
-      display:inline-block;
-      margin-top:10px;
-      background:#4285F4;
-      color:white;
-      padding:8px 12px;
-      border-radius:6px;
-      text-decoration:none;
-      font-weight:bold;
-    ">
-      🗺️ Mở Google Maps
-    </a>
-  `;
-
+  html += `<a href="${gMapFullUrl}" target="_blank" style="display:inline-block; margin-top:10px; background:#4285F4; color:white; padding:10px 15px; border-radius:6px; text-decoration:none; font-weight:bold;">📲 Mở Route trên Google Maps</a>`;
   document.getElementById("suggestion").innerHTML = html;
 
-  // ===== MARKER =====
+  // Vẽ Marker số thứ tự
   orderedPoints.forEach((p, i) => {
-
-    const icon = createNumberIcon(i+1);
-
-    const marker = new H.map.DomMarker(
-      { lat: p[0], lng: p[1] },
-      { icon }
-    );
-
+    const dotIcon = new H.map.DomIcon(`
+      <div style="background:#ff4d4f; color:white; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-weight:bold; border:2px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);">${i+1}</div>
+    `);
+    const marker = new H.map.DomMarker({ lat: p[0], lng: p[1] }, { icon: dotIcon });
     map.addObject(marker);
     markers.push(marker);
   });
 
   await drawRoute(orderedPoints);
 }
-
 </script>
 
 </body>
