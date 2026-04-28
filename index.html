@@ -1,65 +1,136 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng v3.1</title>
+  <title>Route giao hàng v3.0 (Smooth UI)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body { font-family: 'Segoe UI'; margin: 20px; }
-    .container { display: flex; gap: 20px; }
-    .left { flex: 0.8; }
-    .right { flex: 1.2; border: 1px solid #ddd; padding: 15px; background: #f9f9f9; }
+    body {
+      font-family: 'Segoe UI';
+      margin: 0;
+      background: #f4f6f9;
+      color: #333;
+    }
 
-    #map { height: 500px; background: #e5e5e5; }
+    h3 {
+      margin: 16px;
+      font-weight: 600;
+    }
 
-    .input-row { display: flex; gap: 5px; margin-bottom: 8px; }
+    .container {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+    }
 
-    input { flex: 1; padding: 8px; }
+    .left {
+      flex: 0.8;
+      background: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
 
-    button { padding: 8px 12px; cursor: pointer; }
+    .right {
+      flex: 1.2;
+      background: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
 
+    #map {
+      height: 500px;
+      margin: 16px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #007bff;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #0069d9;
+      transform: translateY(-1px);
+    }
+
+    .input-row button {
+      background: #dc3545;
+    }
+
+    #info {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    #suggestion {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* WATERMARK */
     .watermark {
       position: fixed;
       top: 10px;
       right: 15px;
       font-size: 11px;
+      font-weight: 500;
       color: rgba(0,0,0,0.35);
-      background: rgba(255,255,255,0.6);
-      padding: 4px 8px;
+      background: rgba(255,255,255,0.5);
+      padding: 3px 8px;
       border-radius: 6px;
       z-index: 9999;
       pointer-events: none;
-    }
-
-    .del {
-      background: #ff4d4f;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
     }
   </style>
 </head>
 
 <body>
 
-<div class="watermark">by Turtle • v3.1</div>
+<div class="watermark">by Turtle - v3.0</div>
 
-<h3>🚚 ROUTE OPTIMIZER</h3>
+<h3>🚚 DELIVERY ROUTE - GỢI Ý LỘ TRÌNH DI CHUYỂN/ GIAO HÀNG</h3>
 
 <div class="container">
   <div class="left">
     <div id="inputs"></div>
 
     <button onclick="addPoint()">+ Thêm điểm</button>
-    <button onclick="buildRoute()">🚀 Tính route</button>
+    <button onclick="buildRoute()">🚀 Vẽ route</button>
 
-    <div id="info">Tổng km: 0</div>
+    <div id="info">Tổng quãng đường: 0 km</div>
   </div>
 
   <div class="right">
     <h4>📌 Lộ trình gợi ý</h4>
-    <div id="suggestion">Chưa có dữ liệu</div>
+    <div id="suggestion">Chưa có</div>
   </div>
 </div>
 
@@ -75,54 +146,65 @@
 
 const API_KEY = "VkhQNy-v_IW-P28JVNho3NYF4dasL4qGr9N-61082nY";
 
+// MAP
 const platform = new H.service.Platform({ apikey: API_KEY });
 const layers = platform.createDefaultLayers();
 
 const map = new H.Map(
   document.getElementById('map'),
   layers.vector.normal.map,
-  { zoom: 12, center: { lat: 21.0285, lng: 105.8542 } }
+  {
+    zoom: 12,
+    center: { lat: 21.0285, lng: 105.8542 }
+  }
 );
 
 window.addEventListener('resize', () => map.getViewPort().resize());
 new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
 H.ui.UI.createDefault(map, layers);
 
-// ===== INPUT =====
+// INPUT
 let count = 0;
-
 function addPoint() {
   count++;
   const div = document.createElement("div");
   div.className = "input-row";
-
   div.innerHTML = `
-    <input placeholder="${count === 1 ? 'Điểm khởi hành / kho xuất phát' : 'Điểm giao hàng ' + (count-1)}" class="point-input">
-    ${count > 2 ? '<button class="del" onclick="this.parentElement.remove()">✖</button>' : ''}
+    <input placeholder="Điểm ${count}" class="point-input">
+    ${count > 2 ? '<button onclick="this.parentElement.remove()">❌</button>' : ''}
   `;
-
   document.getElementById("inputs").appendChild(div);
 }
 
 addPoint(); addPoint(); addPoint();
 
-// ===== GEOCODE =====
+// GEOCODE
 async function geocode(addr) {
-  const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&apiKey=${API_KEY}`);
-  const data = await res.json();
+  const query = addr + ", Hà Nội";
 
-  if (data.items?.length)
-    return [data.items[0].position.lat, data.items[0].position.lng];
+  try {
+    const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query)}&limit=1&apiKey=${API_KEY}`);
+    const data = await res.json();
+
+    if (data.items?.length) {
+      return [data.items[0].position.lat, data.items[0].position.lng];
+    }
+  } catch {}
+
+  const osm = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+  const o = await osm.json();
+
+  if (o.length) return [parseFloat(o[0].lat), parseFloat(o[0].lon)];
 
   return null;
 }
 
-// ===== DIST =====
+// DIST
 function dist(a,b){
   return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
 }
 
-// ===== OPTIMIZE =====
+// OPTIMIZE
 function optimize(points, addrs){
   let op=[points[0]], oa=[addrs[0]];
   let rp=points.slice(1), ra=addrs.slice(1);
@@ -145,57 +227,60 @@ function optimize(points, addrs){
   return {op,oa};
 }
 
-// ===== ROUTE =====
-let group;
+// ROUTE
+let routeGroup=null;
 let markers=[];
 
-async function draw(points){
+async function drawRoute(points){
 
-  if(group) map.removeObject(group);
-  group = new H.map.Group();
+  if(routeGroup) map.removeObject(routeGroup);
+  routeGroup=new H.map.Group();
 
-  const origin = `${points[0][0]},${points[0][1]}`;
-  const dest = `${points.at(-1)[0]},${points.at(-1)[1]}`;
+  const origin=`${points[0][0]},${points[0][1]}`;
+  const dest=`${points.at(-1)[0]},${points.at(-1)[1]}`;
 
-  let via = points.slice(1,-1).map(p=>`&via=${p[0]},${p[1]}`).join("");
+  let via = points.slice(1,-1)
+    .map(p=>`&via=${p[0]},${p[1]}`)
+    .join("");
 
-  const url =
-    `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${dest}${via}&return=polyline,summary&apiKey=${API_KEY}`;
+  const url=`https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${dest}${via}&return=polyline,summary&apiKey=${API_KEY}`;
 
-  const res = await fetch(url);
-  const data = await res.json();
+  const res=await fetch(url);
+  const data=await res.json();
 
   let total=0;
 
   data.routes[0].sections.forEach(sec=>{
-    const line = H.geo.LineString.fromFlexiblePolyline(sec.polyline);
+    const line=H.geo.LineString.fromFlexiblePolyline(sec.polyline);
 
-    const poly = new H.map.Polyline(line,{
-      style:{strokeColor:'#00AB9F',lineWidth:5}
+    const poly=new H.map.Polyline(line,{
+      style:{strokeColor:'#007bff',lineWidth:5}
     });
 
-    group.addObject(poly);
-    total += sec.summary.length;
+    routeGroup.addObject(poly);
+    total+=sec.summary.length;
   });
 
-  map.addObject(group);
-  map.getViewModel().setLookAtData({bounds:group.getBoundingBox()});
+  map.addObject(routeGroup);
+  map.getViewModel().setLookAtData({
+    bounds:routeGroup.getBoundingBox()
+  });
 
   document.getElementById("info").innerText =
-    "Tổng km: " + (total/1000).toFixed(2);
+    "Tổng quãng đường (tương đối): "+(total/1000).toFixed(2)+" km";
 }
 
-// ===== BUILD =====
+// BUILD
 async function buildRoute(){
 
   markers.forEach(m=>map.removeObject(m));
   markers=[];
 
   let inputs=document.querySelectorAll(".point-input");
-
   let addrs=[];
+
   inputs.forEach(i=>{
-    if(i.value) addrs.push(i.value);
+    if(i.value.trim()) addrs.push(i.value.trim());
   });
 
   if(addrs.length<2) return alert("Nhập ít nhất 2 điểm");
@@ -204,40 +289,37 @@ async function buildRoute(){
 
   for(let a of addrs){
     let p=await geocode(a);
-    if(!p) return alert("Không tìm thấy: "+a);
+    if(!p) return alert("Không tìm thấy "+a);
     points.push(p);
   }
 
   const {op,oa}=optimize(points,addrs);
 
-  // =========================
-  // ✅ FIX PHẦN BẠN HỎI
-  // =========================
+  let html="<ol>";
+  oa.forEach(a=>html+=`<li>${a}</li>`);
+  html+="</ol>";
 
-  let html = `Start - Điểm khởi hành - ${oa[0]}<br><br>`;
+  const gWay=op.slice(1,-1).map(p=>`${p[0]},${p[1]}`).join('|');
 
-  html += "<ol>";
-  for(let i=1;i<oa.length;i++){
-    html += `<li>${oa[i]}</li>`;
-  }
-  html += "</ol>";
+  html+=`
+  <a target="_blank"
+  href="https://www.google.com/maps/dir/?api=1&origin=${op[0][0]},${op[0][1]}&destination=${op.at(-1)[0]},${op.at(-1)[1]}&waypoints=${gWay}">
+  Mở Google Maps
+  </a>`;
 
-  document.getElementById("suggestion").innerHTML = html;
+  document.getElementById("suggestion").innerHTML=html;
 
-  // MARKER
   op.forEach((p,i)=>{
-    const icon=new H.map.DomIcon(`
-      <div style="background:${i===0?'black':'#00AB9F'};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold">
-        ${i===0?'S':i}
-      </div>
-    `);
+    const icon=new H.map.DomIcon(
+      `<div style="background:#ff4d4f;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center">${i+1}</div>`
+    );
 
     const m=new H.map.DomMarker({lat:p[0],lng:p[1]},{icon});
     map.addObject(m);
     markers.push(m);
   });
 
-  await draw(op);
+  await drawRoute(op);
 }
 
 </script>
