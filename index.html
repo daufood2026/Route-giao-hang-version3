@@ -196,13 +196,62 @@ async function drawRoute(points) {
 
   const url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${via}&return=polyline,summary&apiKey=${API_KEY}`;
 
-  const res = await fetch(url);
-  const data = await res.json();
+  try {
 
-  if (!data.routes || data.routes.length === 0) {
-    alert("Không vẽ được route");
-    return;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    console.log("ROUTE DATA:", data); // 🔥 debug
+
+    if (!data.routes || data.routes.length === 0) {
+      alert("Không có route từ HERE");
+      return;
+    }
+
+    let totalMeters = 0;
+
+    data.routes[0].sections.forEach(section => {
+
+      if (!section.polyline) return;
+
+      // 🔥 decode chuẩn HERE
+      const linestring = H.geo.LineString.fromFlexiblePolyline(section.polyline);
+
+      const routeLine = new H.map.Polyline(linestring, {
+        style: {
+          strokeColor: '#007bff',
+          lineWidth: 5
+        }
+      });
+
+      routeGroup.addObject(routeLine);
+
+      if (section.summary && section.summary.length) {
+        totalMeters += section.summary.length;
+      }
+
+    });
+
+    if (routeGroup.getObjects().length === 0) {
+      alert("Route có nhưng không decode được polyline");
+      return;
+    }
+
+    map.addObject(routeGroup);
+
+    map.getViewModel().setLookAtData({
+      bounds: routeGroup.getBoundingBox(),
+      padding: { top:50, left:50, right:50, bottom:50 }
+    });
+
+    document.getElementById("info").innerText =
+      `Tổng quãng đường: ${(totalMeters/1000).toFixed(2)} km`;
+
+  } catch (e) {
+    console.error("DRAW ROUTE ERROR:", e);
+    alert("Lỗi vẽ route");
   }
+}
 
   let totalMeters = 0;
 
