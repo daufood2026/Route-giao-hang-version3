@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng v3 </title>
+  <title>Route giao hàng v3.0 </title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -23,11 +23,11 @@
   position: fixed;
   top: 10px;
   right: 15px;
-  font-size: 14px;
-  font-weight: bold;
-  color: #666;
-  background: rgba(255,255,255,0.7);
-  padding: 4px 10px;
+  font-size: 11px;        /* nhỏ hơn */
+  font-weight: 500;
+  color: rgba(0,0,0,0.35); /* mờ hơn */
+  background: rgba(255,255,255,0.5);
+  padding: 3px 8px;
   border-radius: 6px;
   z-index: 9999;
   pointer-events: none;
@@ -37,15 +37,15 @@
 </head>
 
 <body>
-<div class="watermark">by Turtle - v3</div>  
-<h3>🚚 Route giao hàng - version3</h3>
+<div class="watermark">byTurtle-v.3.0</div>  
+<h3>🚚 DELIVERY ROUTE - GỢI Ý LỘ TRÌNH GIAO HÀNG</h3>
 
 <div class="container">
   <div class="left">
     <div id="inputs"></div>
     <button onclick="addPoint()">+ Thêm điểm</button>
     <button onclick="buildRoute()">🚀 Vẽ route</button>
-    <div id="info">Tổng quãng đường: 0 km</div>
+    <div id="info">Tổng quãng đường (tương đối): 0 km</div>
   </div>
 
   <div class="right">
