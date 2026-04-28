@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng HERE FINAL</title>
+  <title>Route giao hàng FINAL1</title>
 
   <style>
     body { font-family: Arial; }
@@ -55,7 +55,7 @@
 
 <body>
 
-<h3>🚚 Route giao hàng HERE FINAL</h3>
+<h3>🚚 Route giao hàng FINAL1</h3>
 
 <div class="container">
 
@@ -77,7 +77,7 @@
 
 <div id="map"></div>
 
-<!-- HERE MAP -->
+<!-- HERE -->
 <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
@@ -86,10 +86,9 @@
 
 <script>
 
-// ===== CONFIG =====
 const API_KEY = "VkhQNy-v_IW-P28JVNho3NYF4dasL4qGr9N-61082nY";
 
-// ===== MAP (FIX CỨNG) =====
+// ===== MAP (FIX TRẮNG) =====
 const platform = new H.service.Platform({ apikey: API_KEY });
 
 const layers = platform.createDefaultLayers({
@@ -98,28 +97,22 @@ const layers = platform.createDefaultLayers({
 
 const map = new H.Map(
   document.getElementById('map'),
-  layers.raster.normal.map, // 🔥 luôn chạy, không trắng
+  layers.raster.normal.map,
   {
     zoom: 12,
     center: { lat: 21.0285, lng: 105.8542 }
   }
 );
 
-// fix resize
 window.addEventListener('resize', () => map.getViewPort().resize());
-
-// fix render ngay
 setTimeout(() => map.getViewPort().resize(), 100);
 
-// interaction
 new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-
-// UI
 H.ui.UI.createDefault(map, layers);
 
 // ===== STATE =====
 let markers = [];
-let routeLine;
+let routeGroup = null;
 let inputCount = 0;
 
 // ===== INPUT =====
@@ -208,10 +201,10 @@ function createNumberIcon(number) {
   `);
 }
 
-// ===== ROUTE =====
+// ===== ROUTE (FIX CHUẨN) =====
 async function drawRoute(points) {
 
-  if (routeLine) map.removeObject(routeLine);
+  if (routeGroup) map.removeObject(routeGroup);
 
   const origin = `${points[0][0]},${points[0][1]}`;
   const destination = `${points.at(-1)[0]},${points.at(-1)[1]}`;
@@ -220,7 +213,7 @@ async function drawRoute(points) {
     .map(p => `&via=${p[0]},${p[1]}`)
     .join("");
 
-  const url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${via}&return=polyline,summary&apiKey=${API_KEY}`;
+  const url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${via}&return=polyline,summary&routingMode=fast&apiKey=${API_KEY}`;
 
   const res = await fetch(url);
   const data = await res.json();
@@ -231,22 +224,28 @@ async function drawRoute(points) {
     return;
   }
 
-  let lineString = new H.geo.LineString();
+  routeGroup = new H.map.Group();
+
+  let totalDistance = 0;
 
   data.routes[0].sections.forEach(section => {
-    const part = H.geo.LineString.fromFlexiblePolyline(section.polyline);
-    lineString.pushLineString(part);
+
+    const line = H.geo.LineString.fromFlexiblePolyline(section.polyline);
+
+    const polyline = new H.map.Polyline(line, {
+      style: { strokeColor: 'blue', lineWidth: 5 }
+    });
+
+    routeGroup.addObject(polyline);
+
+    totalDistance += section.summary.length;
   });
 
-  routeLine = new H.map.Polyline(lineString, {
-    style: { strokeColor: 'blue', lineWidth: 5 }
+  map.addObject(routeGroup);
+
+  map.getViewModel().setLookAtData({
+    bounds: routeGroup.getBoundingBox()
   });
-
-  map.addObject(routeLine);
-  map.getViewModel().setLookAtData({ bounds: routeLine.getBoundingBox() });
-
-  const totalDistance = data.routes[0].sections
-    .reduce((sum, s) => sum + s.summary.length, 0);
 
   document.getElementById("info").innerText =
     "Tổng quãng đường: " + (totalDistance / 1000).toFixed(2) + " km";
@@ -278,11 +277,12 @@ async function buildRoute() {
   const { orderedPoints, orderedAddresses } =
     optimizeRoute(points, addresses);
 
-  // ===== GỢI Ý + GOOGLE =====
+  // ===== GỢI Ý =====
   let html = "<ol>";
   orderedAddresses.forEach(a => html += `<li>${a}</li>`);
   html += "</ol>";
 
+  // ===== LINK GOOGLE =====
   const gmapUrl = "https://www.google.com/maps/dir/" +
     orderedPoints.map(p => `${p[0]},${p[1]}`).join("/");
 
@@ -303,7 +303,7 @@ async function buildRoute() {
 
   document.getElementById("suggestion").innerHTML = html;
 
-  // marker số
+  // ===== MARKER =====
   orderedPoints.forEach((p, i) => {
 
     const icon = createNumberIcon(i+1);
