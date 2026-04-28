@@ -1,18 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng by_turtle v3 </title>
+  <title>Route giao hàng HERE FIX</title>
 
   <style>
     body { font-family: Arial; }
-
-    .container {
-      display: flex;
-      gap: 20px;
-    }
-
+    .container { display: flex; gap: 20px; }
     .left { flex: 0.7; }
-
     .right {
       flex: 1.3;
       min-width: 350px;
@@ -20,67 +14,38 @@
       padding: 12px;
       background: #fafafa;
     }
-
     #map { height: 500px; margin-top: 10px; }
-
-    .input-row {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    input {
-      flex: 1;
-      padding: 6px;
-      margin: 4px 0;
-    }
-
-    button {
-      padding: 6px 12px;
-      margin: 5px 5px 5px 0;
-      cursor: pointer;
-    }
-
+    .input-row { display: flex; gap: 5px; }
+    input { flex: 1; padding: 6px; margin: 4px 0; }
+    button { padding: 6px 12px; margin: 5px 5px 5px 0; cursor: pointer; }
     #info { margin-top: 10px; font-weight: bold; }
-
-    #suggestion {
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 768px) {
-      .container { flex-direction: column; }
-      .left, .right { width: 100%; }
-      #map { height: 400px; }
-    }
+    #suggestion { font-size: 14px; line-height: 1.6; }
   </style>
 </head>
 
 <body>
 
-<h3>🚚 Route giao hàng by_turtle v3 </h3>
+<h3>🚚 Route HERE FIX</h3>
 
 <div class="container">
-
   <div class="left">
     <div id="inputs"></div>
 
     <button onclick="addPoint()">+ Thêm điểm</button>
     <button onclick="buildRoute()">Vẽ route</button>
 
-    <div id="info">Tổng quãng đường (tương đối): 0 km</div>
+    <div id="info">Tổng quãng đường: 0 km</div>
   </div>
 
   <div class="right">
     <h4>📌 Gợi ý cung đường:</h4>
     <div id="suggestion">Chưa có dữ liệu</div>
   </div>
-
 </div>
 
 <div id="map"></div>
 
-<!-- HERE MAP (FIX ĐỦ SCRIPT) -->
+<!-- HERE -->
 <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
@@ -89,32 +54,30 @@
 
 <script>
 
-// ===== CONFIG =====
 const API_KEY = "YOUR_API_KEY";
 
 // ===== MAP =====
 const platform = new H.service.Platform({ apikey: API_KEY });
-const defaultLayers = platform.createDefaultLayers();
+const layers = platform.createDefaultLayers();
 
-var map = new H.Map(
+const map = new H.Map(
   document.getElementById('map'),
-  defaultLayers.vector.normal.map,
-  {
-    zoom: 12,
-    center: { lat: 21.0285, lng: 105.8542 }
-  }
+  layers.vector.normal.map,
+  { zoom: 12, center: { lat: 21.0285, lng: 105.8542 } }
 );
 
-// FIX: enable interaction nhưng KHÔNG crash
-const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
-H.ui.UI.createDefault(map, defaultLayers);
+// FIX map trắng
+window.addEventListener('resize', () => map.getViewPort().resize());
+
+new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+H.ui.UI.createDefault(map, layers);
 
 // ===== STATE =====
 let markers = [];
 let routeLine;
 let inputCount = 0;
 
-// ===== ADD INPUT (GIỮ NGUYÊN 100%) =====
+// ===== INPUT GIỮ NGUYÊN =====
 function addPoint() {
   inputCount++;
 
@@ -130,97 +93,82 @@ function addPoint() {
   if (inputCount > 2) {
     const removeBtn = document.createElement("button");
     removeBtn.innerText = "❌";
-
-    removeBtn.onclick = () => {
-      wrapper.remove();
-    };
-
+    removeBtn.onclick = () => wrapper.remove();
     wrapper.appendChild(removeBtn);
   }
 
   document.getElementById("inputs").appendChild(wrapper);
 }
 
-// GIỮ NGUYÊN INIT
 addPoint(); addPoint(); addPoint();
 
-// ===== GEOCODE (HERE) =====
-async function geocode(address) {
+// ===== GEOCODE =====
+async function geocode(addr) {
   const res = await fetch(
-    `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(address)}&apiKey=${API_KEY}`
+    `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&apiKey=${API_KEY}`
   );
   const data = await res.json();
-
   if (!data.items.length) return null;
-
   return [data.items[0].position.lat, data.items[0].position.lng];
 }
 
-// ===== DISTANCE (GIỮ NGUYÊN) =====
+// ===== DISTANCE =====
 function distance(a, b) {
-  return Math.sqrt(
-    (a[0]-b[0])**2 + (a[1]-b[1])**2
-  );
+  return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
 }
 
-// ===== OPTIMIZE (GIỮ NGUYÊN) =====
+// ===== OPTIMIZE GIỮ NGUYÊN =====
 function optimizeRoute(points, addresses) {
-
   let orderedPoints = [points[0]];
   let orderedAddresses = [addresses[0]];
+  let remainP = points.slice(1);
+  let remainA = addresses.slice(1);
 
-  let remainingPoints = points.slice(1);
-  let remainingAddr = addresses.slice(1);
+  while (remainP.length) {
+    let last = orderedPoints.at(-1);
+    let idx = 0, min = distance(last, remainP[0]);
 
-  while (remainingPoints.length > 0) {
-    let last = orderedPoints[orderedPoints.length - 1];
-
-    let minIndex = 0;
-    let minDist = distance(last, remainingPoints[0]);
-
-    for (let i = 1; i < remainingPoints.length; i++) {
-      let d = distance(last, remainingPoints[i]);
-      if (d < minDist) {
-        minDist = d;
-        minIndex = i;
-      }
+    for (let i=1;i<remainP.length;i++) {
+      let d = distance(last, remainP[i]);
+      if (d < min) { min = d; idx = i; }
     }
 
-    orderedPoints.push(remainingPoints[minIndex]);
-    orderedAddresses.push(remainingAddr[minIndex]);
+    orderedPoints.push(remainP[idx]);
+    orderedAddresses.push(remainA[idx]);
 
-    remainingPoints.splice(minIndex, 1);
-    remainingAddr.splice(minIndex, 1);
+    remainP.splice(idx,1);
+    remainA.splice(idx,1);
   }
 
   return { orderedPoints, orderedAddresses };
 }
 
-// ===== ROUTE (HERE) =====
+// ===== ROUTE =====
 async function drawRoute(points) {
 
   if (routeLine) map.removeObject(routeLine);
 
-  const origin = `${points[0][0]},${points[0][1]}`;
-  const destination = `${points[points.length - 1][0]},${points[points.length - 1][1]}`;
+  let origin = `${points[0][0]},${points[0][1]}`;
+  let dest = `${points.at(-1)[0]},${points.at(-1)[1]}`;
 
-  let via = "";
-  if (points.length > 2) {
-    via = points.slice(1, -1)
-      .map(p => `&via=${p[0]},${p[1]}`)
-      .join("");
-  }
+  let via = points.slice(1,-1)
+    .map(p => `&via=${p[0]},${p[1]}`).join("");
 
-  const url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${destination}${via}&return=polyline,summary&apiKey=${API_KEY}`;
+  let url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${dest}${via}&return=polyline,summary&apiKey=${API_KEY}`;
 
   const res = await fetch(url);
   const data = await res.json();
 
-  const section = data.routes[0].sections[0];
+  if (!data.routes) {
+    alert("Lỗi route HERE");
+    console.log(data);
+    return;
+  }
 
-  const linestring = H.geo.LineString.fromFlexiblePolyline(section.polyline);
+  let section = data.routes[0].sections[0];
+  let line = H.geo.LineString.fromFlexiblePolyline(section.polyline);
 
-  routeLine = new H.map.Polyline(linestring, {
+  routeLine = new H.map.Polyline(line, {
     style: { strokeColor: 'blue', lineWidth: 5 }
   });
 
@@ -228,18 +176,16 @@ async function drawRoute(points) {
   map.getViewModel().setLookAtData({ bounds: routeLine.getBoundingBox() });
 
   document.getElementById("info").innerText =
-    "Tổng quãng đường (tương đối): " + (section.summary.length / 1000).toFixed(2) + " km";
+    "Tổng quãng đường: " + (section.summary.length/1000).toFixed(2) + " km";
 }
 
-// ===== BUILD (GIỮ NGUYÊN LOGIC) =====
+// ===== BUILD =====
 async function buildRoute() {
 
-  const inputs = document.querySelectorAll(".point-input");
+  let inputs = document.querySelectorAll(".point-input");
 
   let addresses = [];
-  inputs.forEach(i => {
-    if (i.value) addresses.push(i.value);
-  });
+  inputs.forEach(i => { if (i.value) addresses.push(i.value); });
 
   if (addresses.length < 2) {
     alert("Nhập ít nhất 2 điểm");
@@ -250,31 +196,32 @@ async function buildRoute() {
   markers = [];
 
   let points = [];
-
-  for (let addr of addresses) {
-    const p = await geocode(addr);
-    if (!p) {
-      alert("Không tìm thấy: " + addr);
-      return;
-    }
+  for (let a of addresses) {
+    let p = await geocode(a);
+    if (!p) return alert("Không tìm thấy: " + a);
     points.push(p);
   }
 
   const { orderedPoints, orderedAddresses } =
     optimizeRoute(points, addresses);
 
+  // ===== GỢI Ý + LINK GG (ĐÃ FIX) =====
   let html = "<ol>";
-  orderedAddresses.forEach(addr => {
-    html += `<li>${addr}</li>`;
-  });
+  orderedAddresses.forEach(a => html += `<li>${a}</li>`);
   html += "</ol>";
+
+  const gmapUrl = "https://www.google.com/maps/dir/" +
+    orderedPoints.map(p => `${p[0]},${p[1]}`).join("/");
+
+  html += `<a href="${gmapUrl}" target="_blank">🗺️ Mở Google Maps</a>`;
 
   document.getElementById("suggestion").innerHTML = html;
 
-  orderedPoints.forEach((p) => {
-    const marker = new H.map.Marker({ lat: p[0], lng: p[1] });
-    map.addObject(marker);
-    markers.push(marker);
+  // marker
+  orderedPoints.forEach(p => {
+    let m = new H.map.Marker({lat:p[0], lng:p[1]});
+    map.addObject(m);
+    markers.push(m);
   });
 
   await drawRoute(orderedPoints);
