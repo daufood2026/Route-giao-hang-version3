@@ -1,51 +1,131 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng v3.0 </title>
+  <title>Route giao hàng v3.0 (Smooth UI)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body { font-family: 'Segoe UI'; margin: 20px; }
-    .container { display: flex; gap: 20px; }
-    .left { flex: 0.8; }
+    body {
+      font-family: 'Segoe UI';
+      margin: 0;
+      background: #f4f6f9;
+      color: #333;
+    }
+
+    h3 {
+      margin: 16px;
+      font-weight: 600;
+    }
+
+    .container {
+      display: flex;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .left {
+      flex: 0.8;
+      background: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
     .right {
       flex: 1.2;
-      border: 1px solid #ddd;
-      padding: 15px;
-      background: #f9f9f9;
+      background: #fff;
+      padding: 14px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
-    #map { height: 500px; background: #e5e5e5; }
-    .input-row { display: flex; gap: 5px; margin-bottom: 8px; }
-    input { flex: 1; padding: 8px; }
-    button { padding: 8px 12px; cursor: pointer; }
 
+    #map {
+      height: 500px;
+      margin: 16px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: #007bff;
+    }
+
+    button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #0069d9;
+      transform: translateY(-1px);
+    }
+
+    .input-row button {
+      background: #dc3545;
+    }
+
+    #info {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    #suggestion {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* WATERMARK */
     .watermark {
-  position: fixed;
-  top: 10px;
-  right: 15px;
-  font-size: 11px;        /* nhỏ hơn */
-  font-weight: 500;
-  color: rgba(0,0,0,0.35); /* mờ hơn */
-  background: rgba(255,255,255,0.5);
-  padding: 3px 8px;
-  border-radius: 6px;
-  z-index: 9999;
-  pointer-events: none;
-}
-    
-     </style>
+      position: fixed;
+      top: 10px;
+      right: 15px;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(0,0,0,0.35);
+      background: rgba(255,255,255,0.5);
+      padding: 3px 8px;
+      border-radius: 6px;
+      z-index: 9999;
+      pointer-events: none;
+    }
+  </style>
 </head>
 
 <body>
-<div class="watermark">byTurtle-v.3.0</div>  
-<h3>🚚 DELIVERY ROUTE - GỢI Ý LỘ TRÌNH GIAO HÀNG</h3>
+
+<div class="watermark">by Turtle - v3.0</div>
+
+<h3>🚚 DELIVERY ROUTE - GỢI Ý LỘ TRÌNH GIAO HÀNG/DI CHUYỂN</h3>
 
 <div class="container">
   <div class="left">
     <div id="inputs"></div>
+
     <button onclick="addPoint()">+ Thêm điểm</button>
     <button onclick="buildRoute()">🚀 Vẽ route</button>
-    <div id="info">Tổng quãng đường (tương đối): 0 km</div>
+
+    <div id="info">Tổng quãng đường: 0 km</div>
   </div>
 
   <div class="right">
@@ -64,10 +144,9 @@
 
 <script>
 
-// ===== API =====
 const API_KEY = "VkhQNy-v_IW-P28JVNho3NYF4dasL4qGr9N-61082nY";
 
-// ===== MAP =====
+// MAP
 const platform = new H.service.Platform({ apikey: API_KEY });
 const layers = platform.createDefaultLayers();
 
@@ -84,7 +163,7 @@ window.addEventListener('resize', () => map.getViewPort().resize());
 new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
 H.ui.UI.createDefault(map, layers);
 
-// ===== INPUT =====
+// INPUT
 let count = 0;
 function addPoint() {
   count++;
@@ -92,28 +171,26 @@ function addPoint() {
   div.className = "input-row";
   div.innerHTML = `
     <input placeholder="Điểm ${count}" class="point-input">
-    ${count>2 ? '<button onclick="this.parentElement.remove()">❌</button>' : ''}
+    ${count > 2 ? '<button onclick="this.parentElement.remove()">❌</button>' : ''}
   `;
   document.getElementById("inputs").appendChild(div);
 }
+
 addPoint(); addPoint(); addPoint();
 
-// ===== GEOCODE =====
+// GEOCODE
 async function geocode(addr) {
+  const query = addr + ", Hà Nội";
 
-  const query = addr.includes("Hà Nội") ? addr : addr + ", Hà Nội";
-
-  // HERE
   try {
     const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query)}&limit=1&apiKey=${API_KEY}`);
     const data = await res.json();
 
-    if (data.items && data.items.length) {
+    if (data.items?.length) {
       return [data.items[0].position.lat, data.items[0].position.lng];
     }
   } catch {}
 
-  // fallback OSM
   const osm = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
   const o = await osm.json();
 
@@ -122,12 +199,12 @@ async function geocode(addr) {
   return null;
 }
 
-// ===== DISTANCE =====
+// DIST
 function dist(a,b){
   return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
 }
 
-// ===== OPTIMIZE =====
+// OPTIMIZE
 function optimize(points, addrs){
   let op=[points[0]], oa=[addrs[0]];
   let rp=points.slice(1), ra=addrs.slice(1);
@@ -146,10 +223,11 @@ function optimize(points, addrs){
     rp.splice(idx,1);
     ra.splice(idx,1);
   }
+
   return {op,oa};
 }
 
-// ===== ROUTE =====
+// ROUTE
 let routeGroup=null;
 let markers=[];
 
@@ -158,43 +236,41 @@ async function drawRoute(points){
   if(routeGroup) map.removeObject(routeGroup);
   routeGroup=new H.map.Group();
 
-  const origin = `${points[0][0]},${points[0][1]}`;
-  const dest = `${points.at(-1)[0]},${points.at(-1)[1]}`;
+  const origin=`${points[0][0]},${points[0][1]}`;
+  const dest=`${points.at(-1)[0]},${points.at(-1)[1]}`;
 
   let via = points.slice(1,-1)
     .map(p=>`&via=${p[0]},${p[1]}`)
     .join("");
 
-  const url = `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${dest}${via}&return=polyline,summary&apiKey=${API_KEY}`;
+  const url=`https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${dest}${via}&return=polyline,summary&apiKey=${API_KEY}`;
 
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if(!data.routes) return alert("Không có route");
+  const res=await fetch(url);
+  const data=await res.json();
 
   let total=0;
 
   data.routes[0].sections.forEach(sec=>{
-    if(!sec.polyline) return;
+    const line=H.geo.LineString.fromFlexiblePolyline(sec.polyline);
 
-    const line = H.geo.LineString.fromFlexiblePolyline(sec.polyline);
-
-    const poly = new H.map.Polyline(line,{
-      style:{strokeColor:'blue',lineWidth:5}
+    const poly=new H.map.Polyline(line,{
+      style:{strokeColor:'#007bff',lineWidth:5}
     });
 
     routeGroup.addObject(poly);
-    total += sec.summary.length;
+    total+=sec.summary.length;
   });
 
   map.addObject(routeGroup);
-  map.getViewModel().setLookAtData({bounds:routeGroup.getBoundingBox()});
+  map.getViewModel().setLookAtData({
+    bounds:routeGroup.getBoundingBox()
+  });
 
   document.getElementById("info").innerText =
-    "Tổng quãng đường (tương đối): "+(total/1000).toFixed(2)+" km";
+    "Tổng quãng đường: "+(total/1000).toFixed(2)+" km";
 }
 
-// ===== BUILD =====
+// BUILD
 async function buildRoute(){
 
   markers.forEach(m=>map.removeObject(m));
@@ -204,7 +280,7 @@ async function buildRoute(){
   let addrs=[];
 
   inputs.forEach(i=>{
-    if(i.value) addrs.push(i.value);
+    if(i.value.trim()) addrs.push(i.value.trim());
   });
 
   if(addrs.length<2) return alert("Nhập ít nhất 2 điểm");
@@ -219,22 +295,25 @@ async function buildRoute(){
 
   const {op,oa}=optimize(points,addrs);
 
-  // UI
   let html="<ol>";
   oa.forEach(a=>html+=`<li>${a}</li>`);
   html+="</ol>";
 
-  const gOrigin=`${op[0][0]},${op[0][1]}`;
-  const gDest=`${op.at(-1)[0]},${op.at(-1)[1]}`;
   const gWay=op.slice(1,-1).map(p=>`${p[0]},${p[1]}`).join('|');
 
-  html+=`<a href="https://www.google.com/maps/dir/?api=1&origin=${gOrigin}&destination=${gDest}&waypoints=${gWay}" target="_blank">Mở Google Maps</a>`;
+  html+=`
+  <a target="_blank"
+  href="https://www.google.com/maps/dir/?api=1&origin=${op[0][0]},${op[0][1]}&destination=${op.at(-1)[0]},${op.at(-1)[1]}&waypoints=${gWay}">
+  Mở Google Maps
+  </a>`;
 
   document.getElementById("suggestion").innerHTML=html;
 
-  // marker
   op.forEach((p,i)=>{
-    const icon=new H.map.DomIcon(`<div style="background:red;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center">${i+1}</div>`);
+    const icon=new H.map.DomIcon(
+      `<div style="background:#ff4d4f;color:#fff;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center">${i+1}</div>`
+    );
+
     const m=new H.map.DomMarker({lat:p[0],lng:p[1]},{icon});
     map.addObject(m);
     markers.push(m);
