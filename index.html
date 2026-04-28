@@ -1,98 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng v3.0</title>
+  <title>Route giao hàng v3.1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
-    body { font-family: 'Segoe UI'; margin: 20px; background:#f5f7fb; }
-
+    body { font-family: 'Segoe UI'; margin: 20px; }
     .container { display: flex; gap: 20px; }
-
     .left { flex: 0.8; }
+    .right { flex: 1.2; border: 1px solid #ddd; padding: 15px; background: #f9f9f9; }
 
-    .right {
-      flex: 1.2;
-      border: 1px solid #e6e6e6;
-      padding: 15px;
-      background: #fff;
-      border-radius: 10px;
+    #map { height: 500px; background: #e5e5e5; }
+
+    .input-row { display: flex; gap: 5px; margin-bottom: 8px; }
+
+    input { flex: 1; padding: 8px; }
+
+    button { padding: 8px 12px; cursor: pointer; }
+
+    .watermark {
+      position: fixed;
+      top: 10px;
+      right: 15px;
+      font-size: 11px;
+      color: rgba(0,0,0,0.35);
+      background: rgba(255,255,255,0.6);
+      padding: 4px 8px;
+      border-radius: 6px;
+      z-index: 9999;
+      pointer-events: none;
     }
 
-    #map {
-      height: 500px;
-      background: #e5e5e5;
-      border-radius: 10px;
-      margin-top: 15px;
+    .del {
+      background: #ff4d4f;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
     }
-
-    .input-row { display:flex; gap:5px; margin-bottom:8px; }
-
-    input {
-      flex:1;
-      padding:8px;
-      border:1px solid #ddd;
-      border-radius:6px;
-    }
-
-    button {
-      padding:8px 12px;
-      cursor:pointer;
-      border:none;
-      border-radius:6px;
-      background:#1E90FF;
-      color:#fff;
-      font-weight:600;
-    }
-
-    button:hover { opacity:0.9; }
-
-    .btn-remove{
-      background:#fff;
-      color:#ff4d4f;
-      border:1px solid #ff4d4f;
-      font-weight:700;
-    }
-
-    .watermark{
-      position:fixed;
-      top:10px;
-      right:15px;
-      font-size:11px;
-      color:rgba(0,0,0,0.35);
-      background:rgba(255,255,255,0.7);
-      padding:4px 8px;
-      border-radius:6px;
-      z-index:9999;
-      pointer-events:none;
-    }
-
-    #info { margin-top:10px; font-weight:600; }
   </style>
 </head>
 
 <body>
 
-<div class="watermark">by Turtle - v3.0</div>
+<div class="watermark">by Turtle • v3.1</div>
 
-<h3>🚚 DELIVERY ROUTE SYSTEM - GỢI Ý LỘ TRÌNH GIAO HÀNG/DI CHUYỂN</h3>
+<h3>🚚 ROUTE OPTIMIZER</h3>
 
 <div class="container">
-
   <div class="left">
     <div id="inputs"></div>
 
     <button onclick="addPoint()">+ Thêm điểm</button>
-    <button onclick="buildRoute()">🚀 Vẽ lộ trình</button>
+    <button onclick="buildRoute()">🚀 Tính route</button>
 
-    <div id="info">Tổng quãng đường: 0 km</div>
+    <div id="info">Tổng km: 0</div>
   </div>
 
   <div class="right">
     <h4>📌 Lộ trình gợi ý</h4>
     <div id="suggestion">Chưa có dữ liệu</div>
   </div>
-
 </div>
 
 <div id="map"></div>
@@ -101,47 +69,36 @@
 <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
-<link rel="stylesheet" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css"/>
+<link rel="stylesheet" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
 
 <script>
 
 const API_KEY = "VkhQNy-v_IW-P28JVNho3NYF4dasL4qGr9N-61082nY";
 
-// MAP
 const platform = new H.service.Platform({ apikey: API_KEY });
 const layers = platform.createDefaultLayers();
 
 const map = new H.Map(
-  document.getElementById("map"),
+  document.getElementById('map'),
   layers.vector.normal.map,
-  {
-    zoom: 12,
-    center: { lat: 21.0285, lng: 105.8542 }
-  }
+  { zoom: 12, center: { lat: 21.0285, lng: 105.8542 } }
 );
 
+window.addEventListener('resize', () => map.getViewPort().resize());
 new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
 H.ui.UI.createDefault(map, layers);
 
-window.addEventListener("resize", ()=>map.getViewPort().resize());
-
-// INPUT
+// ===== INPUT =====
 let count = 0;
 
-function addPoint(){
+function addPoint() {
   count++;
-
   const div = document.createElement("div");
   div.className = "input-row";
 
-  let label =
-    count === 1
-      ? "Điểm khởi hành/Kho xuất phát"
-      : "Điểm đến/Điểm giao hàng " + (count-1);
-
   div.innerHTML = `
-    <input placeholder="${label}" class="point-input">
-    ${count>2 ? '<button class="btn-remove" onclick="this.parentElement.remove()">✕</button>' : ''}
+    <input placeholder="${count === 1 ? 'Điểm khởi hành / kho xuất phát' : 'Điểm giao hàng ' + (count-1)}" class="point-input">
+    ${count > 2 ? '<button class="del" onclick="this.parentElement.remove()">✖</button>' : ''}
   `;
 
   document.getElementById("inputs").appendChild(div);
@@ -149,40 +106,30 @@ function addPoint(){
 
 addPoint(); addPoint(); addPoint();
 
-// GEOCODE
-async function geocode(addr){
-  const query = addr + ", Hà Nội";
-
-  const res = await fetch(
-    `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(query)}&apiKey=${API_KEY}`
-  );
-
+// ===== GEOCODE =====
+async function geocode(addr) {
+  const res = await fetch(`https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addr)}&apiKey=${API_KEY}`);
   const data = await res.json();
 
-  if(data.items?.length){
-    return [
-      data.items[0].position.lat,
-      data.items[0].position.lng
-    ];
-  }
+  if (data.items?.length)
+    return [data.items[0].position.lat, data.items[0].position.lng];
 
   return null;
 }
 
-// DIST
+// ===== DIST =====
 function dist(a,b){
   return Math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2);
 }
 
-// OPTIMIZE
-function optimize(points, labels){
-  let op=[points[0]], ol=[labels[0]];
-  let rp=points.slice(1), rl=labels.slice(1);
+// ===== OPTIMIZE =====
+function optimize(points, addrs){
+  let op=[points[0]], oa=[addrs[0]];
+  let rp=points.slice(1), ra=addrs.slice(1);
 
   while(rp.length){
     let last=op.at(-1);
-    let idx=0;
-    let min=dist(last,rp[0]);
+    let idx=0, min=dist(last,rp[0]);
 
     for(let i=1;i<rp.length;i++){
       let d=dist(last,rp[i]);
@@ -190,113 +137,98 @@ function optimize(points, labels){
     }
 
     op.push(rp[idx]);
-    ol.push(rl[idx]);
-
+    oa.push(ra[idx]);
     rp.splice(idx,1);
-    rl.splice(idx,1);
+    ra.splice(idx,1);
   }
 
-  return {op,ol};
+  return {op,oa};
 }
 
-// ROUTE
-let group=null;
+// ===== ROUTE =====
+let group;
 let markers=[];
 
-async function drawRoute(points){
+async function draw(points){
 
   if(group) map.removeObject(group);
-  group=new H.map.Group();
+  group = new H.map.Group();
 
-  const origin=`${points[0][0]},${points[0][1]}`;
-  const dest=`${points.at(-1)[0]},${points.at(-1)[1]}`;
+  const origin = `${points[0][0]},${points[0][1]}`;
+  const dest = `${points.at(-1)[0]},${points.at(-1)[1]}`;
 
-  let via=points.slice(1,-1)
-    .map(p=>`&via=${p[0]},${p[1]}`)
-    .join("");
+  let via = points.slice(1,-1).map(p=>`&via=${p[0]},${p[1]}`).join("");
 
-  const url=`https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${dest}${via}&return=polyline,summary&apiKey=${API_KEY}`;
+  const url =
+    `https://router.hereapi.com/v8/routes?transportMode=car&origin=${origin}&destination=${dest}${via}&return=polyline,summary&apiKey=${API_KEY}`;
 
-  const res=await fetch(url);
-  const data=await res.json();
+  const res = await fetch(url);
+  const data = await res.json();
 
   let total=0;
 
   data.routes[0].sections.forEach(sec=>{
-    const line=H.geo.LineString.fromFlexiblePolyline(sec.polyline);
+    const line = H.geo.LineString.fromFlexiblePolyline(sec.polyline);
 
-    const poly=new H.map.Polyline(line,{
-      style:{
-        strokeColor:'#00AB9F',
-        lineWidth:6
-      }
+    const poly = new H.map.Polyline(line,{
+      style:{strokeColor:'#00AB9F',lineWidth:5}
     });
 
     group.addObject(poly);
-    total+=sec.summary.length;
+    total += sec.summary.length;
   });
 
   map.addObject(group);
   map.getViewModel().setLookAtData({bounds:group.getBoundingBox()});
 
-  document.getElementById("info").innerText=
-    "Tổng quãng đường (tương đối): "+(total/1000).toFixed(2)+" km";
+  document.getElementById("info").innerText =
+    "Tổng km: " + (total/1000).toFixed(2);
 }
 
-// BUILD
+// ===== BUILD =====
 async function buildRoute(){
 
   markers.forEach(m=>map.removeObject(m));
   markers=[];
 
-  const inputs=document.querySelectorAll(".point-input");
+  let inputs=document.querySelectorAll(".point-input");
 
-  let labels=[];
+  let addrs=[];
+  inputs.forEach(i=>{
+    if(i.value) addrs.push(i.value);
+  });
+
+  if(addrs.length<2) return alert("Nhập ít nhất 2 điểm");
+
   let points=[];
 
-  for(let i=0;i<inputs.length;i++){
-    if(!inputs[i].value) continue;
-
-    labels.push(inputs[i].value);
-    let p=await geocode(inputs[i].value);
-
-    if(!p) return alert("Không tìm thấy: "+inputs[i].value);
-
+  for(let a of addrs){
+    let p=await geocode(a);
+    if(!p) return alert("Không tìm thấy: "+a);
     points.push(p);
   }
 
-  if(points.length<2) return alert("Cần ít nhất 2 điểm");
+  const {op,oa}=optimize(points,addrs);
 
-  const {op,ol}=optimize(points,labels);
+  // =========================
+  // ✅ FIX PHẦN BẠN HỎI
+  // =========================
 
-  // UI
   let html = `Start - Điểm khởi hành - ${oa[0]}<br><br>`;
 
   html += "<ol>";
-  for (let i = 1; i < oa.length; i++) {
-  html += `<li>${oa[i]}</li>`;
+  for(let i=1;i<oa.length;i++){
+    html += `<li>${oa[i]}</li>`;
   }
   html += "</ol>";
 
-  document.getElementById("suggestion").innerHTML=html;
+  document.getElementById("suggestion").innerHTML = html;
 
   // MARKER
   op.forEach((p,i)=>{
-
     const icon=new H.map.DomIcon(`
-      <div style="
-        background:${i===0?'#000':'#00AB9F'};
-        color:white;
-        border-radius:50%;
-        width:30px;
-        height:30px;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-weight:700;
-        border:2px solid white;
-      ">
-        ${i===0?"Start":i}
+      <div style="background:${i===0?'black':'#00AB9F'};color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold">
+        ${i===0?'S':i}
       </div>
     `);
 
@@ -305,7 +237,7 @@ async function buildRoute(){
     markers.push(m);
   });
 
-  await drawRoute(op);
+  await draw(op);
 }
 
 </script>
