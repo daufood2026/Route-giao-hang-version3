@@ -270,11 +270,13 @@ async function buildRoute(){
   const {op,ol}=optimize(points,labels);
 
   // UI
-  let html="<ol>";
-  ol.forEach((a,i)=>{
-    html+=`<li>${i===0?"Start - Kho xuất phát":`Điểm ${i}: ${a}`}</li>`;
-  });
-  html+="</ol>";
+  let html = `Start - Điểm khởi hành - ${oa[0]}<br><br>`;
+
+  html += "<ol>";
+  for (let i = 1; i < oa.length; i++) {
+  html += `<li>${oa[i]}</li>`;
+  }
+  html += "</ol>";
 
   document.getElementById("suggestion").innerHTML=html;
 
