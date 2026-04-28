@@ -191,7 +191,7 @@ async function drawRoute(points){
   map.getViewModel().setLookAtData({bounds:routeGroup.getBoundingBox()});
 
   document.getElementById("info").innerText =
-    "Tổng quãng đường: "+(total/1000).toFixed(2)+" km";
+    "Tổng quãng đường (tương đối): "+(total/1000).toFixed(2)+" km";
 }
 
 // ===== BUILD =====
