@@ -73,9 +73,9 @@
 
 <body>
 
-<div class="watermark">byTurtle-v3.0</div>
+<div class="watermark">by Turtle - v3.0</div>
 
-<h3>🚚 DELIVERY ROUTE - GỢI Ý LỘ TRÌNH GIAO HÀNG/DI CHUYỂN </h3>
+<h3>🚚 DELIVERY ROUTE SYSTEM - GỢI Ý LỘ TRÌNH GIAO HÀNG/DI CHUYỂN</h3>
 
 <div class="container">
 
@@ -136,8 +136,8 @@ function addPoint(){
 
   let label =
     count === 1
-      ? "Điểm khởi hành / Kho xuất phát"
-      : "Điểm giao hàng " + (count-1);
+      ? "Điểm khởi hành/Kho xuất phát"
+      : "Điểm đến/Điểm giao hàng " + (count-1);
 
   div.innerHTML = `
     <input placeholder="${label}" class="point-input">
@@ -227,10 +227,8 @@ async function drawRoute(points){
 
     const poly=new H.map.Polyline(line,{
       style:{
-        strokeColor:'#1E90FF', // màu xanh blue
-        lineWidth:6,
-        lineCap:'round',
-        lineJoin:'round'
+        strokeColor:'#00AB9F',
+        lineWidth:6
       }
     });
 
@@ -242,7 +240,7 @@ async function drawRoute(points){
   map.getViewModel().setLookAtData({bounds:group.getBoundingBox()});
 
   document.getElementById("info").innerText=
-    "Tổng quãng đường: "+(total/1000).toFixed(2)+" km";
+    "Tổng quãng đường (tương đối): "+(total/1000).toFixed(2)+" km";
 }
 
 // BUILD
@@ -274,7 +272,7 @@ async function buildRoute(){
   // UI
   let html="<ol>";
   ol.forEach((a,i)=>{
-    html+=`<li>${i===0?"START":i+" - "+a}</li>`;
+    html+=`<li>${i===0?"Start - Kho xuất phát":`Điểm ${i}: ${a}`}</li>`;
   });
   html+="</ol>";
 
@@ -296,7 +294,7 @@ async function buildRoute(){
         font-weight:700;
         border:2px solid white;
       ">
-        ${i===0?"S":i}
+        ${i===0?"Start":i}
       </div>
     `);
 
