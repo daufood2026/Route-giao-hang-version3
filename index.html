@@ -80,10 +80,11 @@
 
 <div id="map"></div>
 
-<!-- HERE MAP -->
+<!-- HERE MAP (FIX ĐỦ SCRIPT) -->
 <script src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
 <script src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
+<script src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
 <link rel="stylesheet" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css" />
 
 <script>
@@ -104,6 +105,7 @@ var map = new H.Map(
   }
 );
 
+// FIX: enable interaction nhưng KHÔNG crash
 const behavior = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
 H.ui.UI.createDefault(map, defaultLayers);
 
@@ -112,7 +114,7 @@ let markers = [];
 let routeLine;
 let inputCount = 0;
 
-// ===== ADD INPUT (GIỮ NGUYÊN) =====
+// ===== ADD INPUT (GIỮ NGUYÊN 100%) =====
 function addPoint() {
   inputCount++;
 
@@ -139,10 +141,10 @@ function addPoint() {
   document.getElementById("inputs").appendChild(wrapper);
 }
 
-// 👉 GIỮ NGUYÊN INIT
+// GIỮ NGUYÊN INIT
 addPoint(); addPoint(); addPoint();
 
-// ===== GEOCODE (THAY HERE) =====
+// ===== GEOCODE (HERE) =====
 async function geocode(address) {
   const res = await fetch(
     `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(address)}&apiKey=${API_KEY}`
@@ -194,7 +196,7 @@ function optimizeRoute(points, addresses) {
   return { orderedPoints, orderedAddresses };
 }
 
-// ===== ROUTE (THAY HERE) =====
+// ===== ROUTE (HERE) =====
 async function drawRoute(points) {
 
   if (routeLine) map.removeObject(routeLine);
@@ -229,7 +231,7 @@ async function drawRoute(points) {
     "Tổng quãng đường (tương đối): " + (section.summary.length / 1000).toFixed(2) + " km";
 }
 
-// ===== BUILD (GIỮ NGUYÊN) =====
+// ===== BUILD (GIỮ NGUYÊN LOGIC) =====
 async function buildRoute() {
 
   const inputs = document.querySelectorAll(".point-input");
