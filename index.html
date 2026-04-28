@@ -170,7 +170,28 @@ function addPoint() {
   const div = document.createElement("div");
   div.className = "input-row";
   div.innerHTML = `
-    <input placeholder="Điểm ${count}" class="point-input">
+function addPoint() {
+  count++;
+
+  let label = "";
+
+  if (count === 1) {
+    label = "Điểm khởi hành / Kho đóng hàng";
+  } else {
+    label = `Điểm giao hàng ${count - 1}`;
+  }
+
+  const div = document.createElement("div");
+  div.className = "input-row";
+
+  div.innerHTML = `
+    <input placeholder="${label}" class="point-input">
+    ${count > 2 ? '<button onclick="this.parentElement.remove()" style="background:#dc3545;color:white">❌</button>' : ''}
+  `;
+
+  document.getElementById("inputs").appendChild(div);
+}
+
     ${count > 2 ? '<button onclick="this.parentElement.remove()">❌</button>' : ''}
   `;
   document.getElementById("inputs").appendChild(div);
