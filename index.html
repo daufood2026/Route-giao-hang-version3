@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Route giao hàng v3.0</title>
+  <title>Route giao hàng v3.0 - FINAL</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -21,15 +21,11 @@
       background:rgba(255,255,255,0.6);
       padding:4px 10px;
       border-radius:8px;
-      z-index:9999;
       pointer-events:none;
-      backdrop-filter: blur(4px);
+      z-index:9999;
     }
 
-    h3{
-      margin-bottom:15px;
-      font-weight:600;
-    }
+    h3{margin-bottom:15px;}
 
     .container{
       display:flex;
@@ -38,8 +34,8 @@
 
     .left,.right{
       background:white;
-      border-radius:12px;
       padding:15px;
+      border-radius:12px;
       box-shadow:0 6px 20px rgba(0,0,0,0.05);
     }
 
@@ -51,7 +47,6 @@
       margin-top:15px;
       border-radius:12px;
       overflow:hidden;
-      box-shadow:0 6px 20px rgba(0,0,0,0.08);
     }
 
     .input-row{
@@ -62,16 +57,9 @@
 
     input{
       flex:1;
-      padding:10px 12px;
-      border:1px solid #e0e0e0;
+      padding:10px;
+      border:1px solid #ddd;
       border-radius:8px;
-      outline:none;
-      transition:0.2s;
-    }
-
-    input:focus{
-      border-color:#00AB9F;
-      box-shadow:0 0 0 2px rgba(0,171,159,0.1);
     }
 
     button{
@@ -79,23 +67,10 @@
       border:none;
       border-radius:8px;
       cursor:pointer;
-      font-weight:500;
     }
 
-    .btn-add{
-      background:#00AB9F;
-      color:white;
-    }
-
-    .btn-main{
-      background:#007bff;
-      color:white;
-    }
-
-    .btn-del{
-      background:#dc3545;
-      color:white;
-    }
+    .add{background:#00AB9F;color:white;}
+    .run{background:#007bff;color:white;}
 
     #info{
       margin-top:10px;
@@ -107,22 +82,28 @@
       font-size:14px;
       line-height:1.6;
     }
+
+    .start{
+      color:#00AB9F;
+      font-weight:600;
+      margin-bottom:6px;
+    }
   </style>
 </head>
 
 <body>
 
-<div class="watermark">by Turtle - v3.0</div>
+<div class="watermark">by Turtle - v3 FINAL</div>
 
-<h3>🚚 Delivery Route - Giợi ý lộ trình di chuyển/ giao hàng</h3>
+<h3>🚚 DELIVERY ROUTE - Gợi ý di chuyển/ giao hàng</h3>
 
 <div class="container">
 
   <div class="left">
     <div id="inputs"></div>
 
-    <button class="btn-add" onclick="addPoint()">+ Thêm điểm</button>
-    <button class="btn-main" onclick="buildRoute()">🚀 Vẽ route</button>
+    <button class="add" onclick="addPoint()">+ Thêm điểm</button>
+    <button class="run" onclick="buildRoute()">🚀 Vẽ route</button>
 
     <div id="info">Tổng quãng đường: 0 km</div>
   </div>
@@ -145,13 +126,13 @@
 <script>
 
 // ===== API =====
-const API_KEY="VkhQNy-v_IW-P28JVNho3NYF4dasL4qGr9N-61082nY";
+const API_KEY = "VkhQNy-v_IW-P28JVNho3NYF4dasL4qGr9N-61082nY";
 
 // ===== MAP =====
-const platform=new H.service.Platform({apikey:API_KEY});
-const layers=platform.createDefaultLayers();
+const platform = new H.service.Platform({apikey:API_KEY});
+const layers = platform.createDefaultLayers();
 
-const map=new H.Map(
+const map = new H.Map(
   document.getElementById("map"),
   layers.vector.normal.map,
   {zoom:12,center:{lat:21.0285,lng:105.8542}}
@@ -167,16 +148,16 @@ let count=0;
 function addPoint(){
   count++;
 
-  let label=count===1
-    ?"Điểm khởi hành / Kho đóng hàng"
-    :`Điểm đến ${count-1}`;
+  let label = count===1
+    ? "Điểm khởi hành / Kho đóng hàng"
+    : `Điểm đến ${count-1}`;
 
   const div=document.createElement("div");
   div.className="input-row";
 
   div.innerHTML=`
     <input class="point-input" placeholder="${label}">
-    ${count>2?'<button class="btn-del" onclick="this.parentElement.remove()">❌</button>':''}
+    ${count>2?'<button onclick="this.parentElement.remove()" style="background:#dc3545;color:white">❌</button>':''}
   `;
 
   document.getElementById("inputs").appendChild(div);
@@ -270,7 +251,9 @@ async function buildRoute(){
   let inputs=document.querySelectorAll(".point-input");
   let addrs=[];
 
-  inputs.forEach(i=>i.value&&addrs.push(i.value));
+  inputs.forEach(i=>{
+    if(i.value.trim()) addrs.push(i.value.trim());
+  });
 
   if(addrs.length<2) return alert("Nhập ít nhất 2 điểm");
 
@@ -284,18 +267,26 @@ async function buildRoute(){
 
   const {op,oa}=optimize(points,addrs);
 
-  let html="<ol>";
-  oa.forEach(a=>html+=`<li>${a}</li>`);
-  html+="</ol>";
+  // ===== UI ROUTE PANEL (FIX START + 1-N) =====
+  let html="";
+
+  html+=`<div class="start">Start: ${oa[0]}</div>`;
+
+  for(let i=1;i<oa.length;i++){
+    html+=`${i}. ${oa[i]}<br>`;
+  }
 
   const gWay=op.slice(1,-1).map(p=>`${p[0]},${p[1]}`).join('|');
 
-  html+=`<a target="_blank"
+  html+=`
+  <br>
+  <a target="_blank"
   href="https://www.google.com/maps/dir/?api=1&origin=${op[0]}&destination=${op.at(-1)}&waypoints=${gWay}">
   📍 Mở Google Maps</a>`;
 
   document.getElementById("suggestion").innerHTML=html;
 
+  // ===== MARKER =====
   op.forEach((p,i)=>{
     const icon=new H.map.DomIcon(`
       <div style="
